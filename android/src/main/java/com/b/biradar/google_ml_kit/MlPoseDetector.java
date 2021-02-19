@@ -61,6 +61,7 @@ public class MlPoseDetector implements ApiDetectorInterface {
     //Process the image and return a list containing the info about the pose landmarks.
     @Override
     public void handleDetection(InputImage inputImage, final MethodChannel.Result result) {
+        Log.e("Pose Detection","Handling Pose Detection");
         if (inputImage != null) {
             Task<Pose> poseTask =
                     poseDetector.process(inputImage)
@@ -106,11 +107,13 @@ public class MlPoseDetector implements ApiDetectorInterface {
     public void fromByteBuffer(Map<String, Object> imageData, final MethodChannel.Result result) {
         byte[] bytes = (byte[]) imageData.get("bytes");
 //        Log.e("Bytes received", Arrays.toString(bytes));
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inMutable = true;
-        Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
-        InputImage inputImage = InputImage.fromBitmap(bmp,
-                (int) imageData.get("rotation"));
+//        BitmapFactory.Options options = new BitmapFactory.Options();
+//        options.inMutable = true;
+//        Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
+        InputImage inputImage = InputImage.fromByteArray(bytes,
+                (int) imageData.get("width"),
+                (int) imageData.get("height"),
+                (int) imageData.get("rotation"),InputImage.IMAGE_FORMAT_NV21);
         if (inputImage != null) {
             Task<Pose> poseTask =
                     poseDetector.process(inputImage)

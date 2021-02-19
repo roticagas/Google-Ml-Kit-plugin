@@ -68,27 +68,15 @@ public class MlKitMethodCallHandler implements MethodChannel.MethodCallHandler {
             manageLanguageModel(call, result);
             return;
         } else if (call.method.equals("startMlDigitalInkRecognizer")) {
-            //Retrieve the instance if already created.
-            MlDigitalInkRecogniser recogniser = (MlDigitalInkRecogniser) exceptionDetectors.get(call.method.substring(5));
-            if (recogniser == null) {
-                //Create an instance if not present in the hashMap.
-                recogniser = MlDigitalInkRecogniser.Instance((String) call.argument("modelTag"), result);
-            }
-            if (recogniser != null) {
-                recogniser.handleDetection(result, (List<Map<String, Object>>) call.argument("points"));
-            } else {
-                result.error("Failed to create model identifier", null, null);
-            }
+            startDigitalInkRecogniser(call,result);
             return;
-        }
-
-        if(call.method.equals("startPoseDetector")){
+        }else if(call.method.equals("startPoseDetector")){
             Log.e("Pose detector Log",options.toString());
             if(call.argument("mode").equals("stream")){
                 MlPoseDetector mlPoseDetector = new MlPoseDetector(options);
                 mlPoseDetector.fromByteBuffer((Map<String,Object>) call.arguments(),result);
+                return;
             }
-            return;
         }
 
         ApiDetectorInterface detector = detectorMap.get(call.method.substring(5));
@@ -104,16 +92,16 @@ public class MlKitMethodCallHandler implements MethodChannel.MethodCallHandler {
 
 
         //If the method is called to detect pose.
-        if(call.method.equals("startPoseDetector")){
-                if(detector==null) detector = new MlPoseDetector(options);
-                if(options.get("mode").equals("static")){
-                    detector.handleDetection(inputImage, result);
-                }else{
-                    MlPoseDetector mlPoseDetector = new MlPoseDetector(options);
-                    mlPoseDetector.fromByteBuffer(options,result);
-                }
-                return;
-        }
+//        if(call.method.equals("startPoseDetector")){
+//                if(detector==null) detector = new MlPoseDetector(options);
+//                if(options.get("mode").equals("static")){
+//                    detector.handleDetection(inputImage, result);
+//                }else{
+//                    MlPoseDetector mlPoseDetector = new MlPoseDetector(options);
+//                    mlPoseDetector.fromByteBuffer(options,result);
+//                }
+//                return;
+//        }
         if (detector == null) {
             switch (call.method) {
                 case "startBarcodeScanner":
@@ -130,8 +118,7 @@ public class MlKitMethodCallHandler implements MethodChannel.MethodCallHandler {
 
             detectorMap.put(call.method.substring(5), detector);
         }
-
-
+        
         assert detector != null;
         detector.handleDetection(inputImage, result);
 
@@ -195,7 +182,7 @@ public class MlKitMethodCallHandler implements MethodChannel.MethodCallHandler {
             return inputImage;
 
         } else {
-            new IOException("Error occurred");
+            result.error("Input Image Error","Unable to handle the input image",null);
             return null;
         }
     }
@@ -239,6 +226,20 @@ public class MlKitMethodCallHandler implements MethodChannel.MethodCallHandler {
                     }
                     break;
             }
+        }
+    }
+    
+    private  void startDigitalInkRecogniser(MethodCall call,MethodChannel.Result result){
+        //Retrieve the instance if already created.
+        MlDigitalInkRecogniser recogniser = (MlDigitalInkRecogniser) exceptionDetectors.get(call.method.substring(5));
+        if (recogniser == null) {
+            //Create an instance if not present in the hashMap.
+            recogniser = MlDigitalInkRecogniser.Instance((String) call.argument("modelTag"), result);
+        }
+        if (recogniser != null) {
+            recogniser.handleDetection(result, (List<Map<String, Object>>) call.argument("points"));
+        } else {
+            result.error("Failed to create model identifier", null, null);
         }
     }
 }

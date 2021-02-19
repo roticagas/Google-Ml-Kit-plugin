@@ -20,9 +20,11 @@ class _CameraScreenState extends State<CameraScreen> {
   int selectedCameraIdx;
   String imagePath;
   bool streaming = false;
-  int z = 1;
+  int z = 3;
   PoseDetector _poseDetector;
   List<PoseLandmark> poseLandMarks = [];
+  Map<int, PoseLandmark> _poseLandmarks;
+  ui.Image image;
 
   @override
   void initState() {
@@ -90,51 +92,79 @@ class _CameraScreenState extends State<CameraScreen> {
       child: Stack(
         children: [
           CameraPreview(controller),
-          CustomPaint(
-            painter: LivePosePainter(poseLandMarks),
-          ),
+          image == null
+              ? Container()
+              : CustomPaint(
+                  painter: PosePainter(image, _poseLandmarks),
+                ),
+          // CustomPaint(
+          //   painter: LivePosePainter(poseLandMarks),
+          // ),
           Positioned(
               bottom: 20,
               child:
-              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                RaisedButton(
-                  child: const Text('Start streaming'),
-                  onPressed: () {
-                    if (controller != null) {
-                      if (!controller.value.isStreamingImages)
-                        controller.startImageStream((CameraImage image) {
-                          _poseDetector
-                              .fromByteBuffer(
-                              bytes: _concatenatePlanes(image.planes),
-                              rotation:
-                              controller.description.sensorOrientation,
-                              height: image.height,
-                              width: image.width)
-                              .then((poses) {
-                            setState(() {
-                              poseLandMarks = poses;
-                            });
-                          });
-                        });
-                      setState(() => streaming != streaming);
-                    }
-                  },
-                ),
-                SizedBox(
-                  width: 40,
-                ),
-                RaisedButton(
-                  child: const Text('Stop streaming'),
-                  onPressed: () async {
-                    if (controller != null) {
-                      if (controller.value.isStreamingImages)
-                        controller.stopImageStream();
-                      setState(() => streaming != streaming);
-                    }
-                    print(streaming);
-                  },
-                ),
-              ])),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,children: [
+                        RaisedButton(
+                          child: const Text('Start streaming'),
+                          onPressed: () async {
+                            if (controller != null) {
+                              final img = await controller.takePicture();
+                              final inputImage = InputImage.fromFilePath(img.path);
+                              final list = await _poseDetector.processImage(inputImage);
+                              final imgData = await img.readAsBytes();
+                              final temp = await decodeImageFromList(imgData);
+                              setState(() {
+                                _poseLandmarks = list;
+                                image = temp;
+                              });
+                              // if (!controller.value.isStreamingImages)
+                              //   controller.startImageStream((CameraImage image) {
+                              //     if(z>0){
+                              //       _poseDetector
+                              //           .fromByteBuffer(
+                              //           bytes: _concatenatePlanes(image.planes),
+                              //           rotation:
+                              //           controller.description.sensorOrientation,
+                              //           height: image.height,
+                              //           width: image.width)
+                              //           .then((poses) {
+                              //         setState(() {
+                              //           poseLandMarks = poses;
+                              //         });
+                              //       });
+                              //       print("\n\n");
+                              //       print("${image.format}  ${controller.}");
+                              //       print(_concatenatePlanes(image.planes));
+                              //       z=z-1;
+                              //     }
+                              //   });
+                              // setState(() => streaming != streaming);
+                            }
+                          },
+                        ),
+                        SizedBox(width: 40,),
+                        RaisedButton(
+                          child: const Text('Stop streaming'),
+                          onPressed: () async {
+                            if (controller != null) {
+                              if (controller.value.isStreamingImages)
+                                controller.stopImageStream();
+                              setState(() => streaming != streaming);
+                            }
+                            print(streaming);
+                          },
+                        ),
+                      SizedBox(width: 40,),
+                      RaisedButton(
+                        child: const Text('Take another'),
+                        onPressed: () {
+                          setState(() => image = null);
+                        }
+                      ),
+              ]),
+                  )),
         ],
       ),
     );
@@ -145,10 +175,7 @@ class _CameraScreenState extends State<CameraScreen> {
     for (Plane plane in planes) {
       allBytes.putUint8List(plane.bytes);
     }
-    return allBytes
-        .done()
-        .buffer
-        .asUint8List();
+    return allBytes.done().buffer.asUint8List();
   }
 }
 

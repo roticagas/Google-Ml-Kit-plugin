@@ -68,7 +68,7 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView> {
 
   @override
   void dispose() {
-    barcodeScanner.close();
+    if(barcodeScanner!=null) barcodeScanner.close();
     super.dispose();
   }
 }

@@ -62,7 +62,7 @@ class PoseDetector {
       'options': poseDetectorOptions._detectorOption(),
       'mode' : 'stream',
       'bytes' : bytes,
-      'rotation' : rotation,
+      'rotation' : 0,
       'height' : height,
       'width' : width,
     });
