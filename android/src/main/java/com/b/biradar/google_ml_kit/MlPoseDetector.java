@@ -1,5 +1,16 @@
 package com.b.biradar.google_ml_kit;
 
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.renderscript.Allocation;
+import android.renderscript.Element;
+import android.renderscript.RenderScript;
+import android.renderscript.ScriptIntrinsicYuvToRGB;
+import android.renderscript.Type;
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 
 import com.google.android.gms.tasks.OnFailureListener;
@@ -14,7 +25,9 @@ import com.google.mlkit.vision.pose.accurate.AccuratePoseDetectorOptions;
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,22 +68,22 @@ public class MlPoseDetector implements ApiDetectorInterface {
                                     new OnSuccessListener<Pose>() {
                                         @Override
                                         public void onSuccess(Pose pose) {
-                                            List<Map<String,Object>> pointsList = new ArrayList<>();
+                                            List<Map<String, Object>> pointsList = new ArrayList<>();
                                             if (selectionType.equals("all")) {
-                                                for(PoseLandmark poseLandmark : pose.getAllPoseLandmarks()){
-                                                    Map<String,Object> poseLandmarkMap = new HashMap<>();
-                                                    poseLandmarkMap.put("position",poseLandmark.getLandmarkType());
-                                                    poseLandmarkMap.put("x",poseLandmark.getPosition().x);
-                                                    poseLandmarkMap.put("y",poseLandmark.getPosition().y);
+                                                for (PoseLandmark poseLandmark : pose.getAllPoseLandmarks()) {
+                                                    Map<String, Object> poseLandmarkMap = new HashMap<>();
+                                                    poseLandmarkMap.put("position", poseLandmark.getLandmarkType());
+                                                    poseLandmarkMap.put("x", poseLandmark.getPosition().x);
+                                                    poseLandmarkMap.put("y", poseLandmark.getPosition().y);
                                                     pointsList.add(poseLandmarkMap);
                                                 }
                                             } else {
                                                 for (int i : poseLandMarksList) {
-                                                    Map<String,Object> poseLandmarkMap = new HashMap<>();
+                                                    Map<String, Object> poseLandmarkMap = new HashMap<>();
                                                     PoseLandmark poseLandmark = pose.getPoseLandmark(i);
-                                                    poseLandmarkMap.put("position",poseLandmark.getLandmarkType());
-                                                    poseLandmarkMap.put("x",poseLandmark.getPosition().x);
-                                                    poseLandmarkMap.put("y",poseLandmark.getPosition().y);
+                                                    poseLandmarkMap.put("position", poseLandmark.getLandmarkType());
+                                                    poseLandmarkMap.put("x", poseLandmark.getPosition().x);
+                                                    poseLandmarkMap.put("y", poseLandmark.getPosition().y);
                                                     pointsList.add(poseLandmarkMap);
                                                 }
                                             }
@@ -83,7 +96,57 @@ public class MlPoseDetector implements ApiDetectorInterface {
                                         @Override
                                         public void onFailure(@NonNull Exception e) {
                                             e.printStackTrace();
-                                            result.error("poseDetector error",e.toString(),null);
+                                            result.error("poseDetector error", e.toString(), null);
+                                        }
+                                    });
+        }
+
+    }
+
+    public void fromByteBuffer(Map<String, Object> imageData, final MethodChannel.Result result) {
+        byte[] bytes = (byte[]) imageData.get("bytes");
+//        Log.e("Bytes received", Arrays.toString(bytes));
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inMutable = true;
+        Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
+        InputImage inputImage = InputImage.fromBitmap(bmp,
+                (int) imageData.get("rotation"));
+        if (inputImage != null) {
+            Task<Pose> poseTask =
+                    poseDetector.process(inputImage)
+                            .addOnSuccessListener(
+                                    new OnSuccessListener<Pose>() {
+                                        @Override
+                                        public void onSuccess(Pose pose) {
+                                            List<Map<String, Object>> pointsList = new ArrayList<>();
+                                            if (selectionType.equals("all")) {
+                                                for (PoseLandmark poseLandmark : pose.getAllPoseLandmarks()) {
+                                                    Map<String, Object> poseLandmarkMap = new HashMap<>();
+                                                    poseLandmarkMap.put("position", poseLandmark.getLandmarkType());
+                                                    poseLandmarkMap.put("x", poseLandmark.getPosition().x);
+                                                    poseLandmarkMap.put("y", poseLandmark.getPosition().y);
+                                                    pointsList.add(poseLandmarkMap);
+                                                }
+                                            } else {
+                                                for (int i : poseLandMarksList) {
+                                                    Map<String, Object> poseLandmarkMap = new HashMap<>();
+                                                    PoseLandmark poseLandmark = pose.getPoseLandmark(i);
+                                                    poseLandmarkMap.put("position", poseLandmark.getLandmarkType());
+                                                    poseLandmarkMap.put("x", poseLandmark.getPosition().x);
+                                                    poseLandmarkMap.put("y", poseLandmark.getPosition().y);
+                                                    pointsList.add(poseLandmarkMap);
+                                                }
+                                            }
+
+                                            result.success(pointsList);
+                                        }
+                                    })
+                            .addOnFailureListener(
+                                    new OnFailureListener() {
+                                        @Override
+                                        public void onFailure(@NonNull Exception e) {
+                                            e.printStackTrace();
+                                            result.error("poseDetector error", e.toString(), null);
                                         }
                                     });
         }

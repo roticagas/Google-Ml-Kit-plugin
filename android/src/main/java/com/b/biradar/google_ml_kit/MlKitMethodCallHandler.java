@@ -63,6 +63,7 @@ public class MlKitMethodCallHandler implements MethodChannel.MethodCallHandler {
        //Get the parameters passed along with method call.
         Map<String, Object> options = call.argument("options");
 
+        //If method call is to manage the language models.
         if (call.method.equals("manageInkModels")) {
             manageLanguageModel(call, result);
             return;
@@ -80,6 +81,17 @@ public class MlKitMethodCallHandler implements MethodChannel.MethodCallHandler {
             }
             return;
         }
+
+        if(call.method.equals("startPoseDetector")){
+            Log.e("Pose detector Log",options.toString());
+            if(call.argument("mode").equals("stream")){
+                MlPoseDetector mlPoseDetector = new MlPoseDetector(options);
+                mlPoseDetector.fromByteBuffer((Map<String,Object>) call.arguments(),result);
+            }
+            return;
+        }
+
+        ApiDetectorInterface detector = detectorMap.get(call.method.substring(5));
         InputImage inputImage;
         try {
             inputImage = getInputImage((Map<String, Object>) call.argument("imageData"), result);
@@ -90,18 +102,28 @@ public class MlKitMethodCallHandler implements MethodChannel.MethodCallHandler {
             return;
         }
 
-        ApiDetectorInterface detector = detectorMap.get(call.method.substring(5));
 
+        //If the method is called to detect pose.
+        if(call.method.equals("startPoseDetector")){
+                if(detector==null) detector = new MlPoseDetector(options);
+                if(options.get("mode").equals("static")){
+                    detector.handleDetection(inputImage, result);
+                }else{
+                    MlPoseDetector mlPoseDetector = new MlPoseDetector(options);
+                    mlPoseDetector.fromByteBuffer(options,result);
+                }
+                return;
+        }
         if (detector == null) {
             switch (call.method) {
                 case "startBarcodeScanner":
                     detector = new BarcodeDetector((List<Integer>) call.argument("formats"));
                     break;
-                case "startPoseDetector":
-                    detector = new MlPoseDetector((Map<String, Object>) call.argument("options"));
-                    break;
                 case "startImageLabelDetector":
                     detector = new ImageLabelDetector(options);
+                    break;
+                case "startPoseDetector":
+                    detector = new MlPoseDetector(options);
                     break;
                 case "startTextDetector":
             }

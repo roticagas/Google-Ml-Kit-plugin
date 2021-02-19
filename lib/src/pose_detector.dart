@@ -24,12 +24,14 @@ class PoseDetector {
 
   PoseDetector(this.poseDetectorOptions);
 
+  //Process the image and return a map of int and poseLandmark
   Future<Map<int, PoseLandmark>> processImage(InputImage inputImage) async {
     assert(inputImage != null);
     _isOpened = true;
 
     List<dynamic> result = await GoogleMlKit.channel
         .invokeMethod('startPoseDetector', <String, dynamic>{
+          'mode' : 'static',
       'options': poseDetectorOptions._detectorOption(),
       'imageData': inputImage._getImageData()
     });
@@ -46,6 +48,33 @@ class PoseDetector {
     };
 
     return map;
+  }
+
+  Future<List<PoseLandmark>> fromByteBuffer(
+      {@required Uint8List bytes,
+      @required int rotation,
+      @required int height,
+      @required int width}) async {
+    assert (bytes!=null);
+
+    List<dynamic> result = await GoogleMlKit.channel
+        .invokeMethod('startPoseDetector', <String, dynamic>{
+      'options': poseDetectorOptions._detectorOption(),
+      'mode' : 'stream',
+      'bytes' : bytes,
+      'rotation' : rotation,
+      'height' : height,
+      'width' : width,
+    });
+
+    List<PoseLandmark> poseLandmarks = <PoseLandmark>[];
+    if (result != null) {
+      poseLandmarks.addAll(result
+          .map((item) => PoseLandmark(item['type'], item['x'], item['y'])));
+    }
+    print("Got the result\n");
+    print(poseLandmarks.toString());
+    return poseLandmarks;
   }
 
   Future<void> close() async {

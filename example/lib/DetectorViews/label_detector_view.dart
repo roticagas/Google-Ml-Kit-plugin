@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:ui' as ui;
 import 'dart:io';
 
 class ImageLabelView extends StatefulWidget {
@@ -18,6 +19,7 @@ class _ImageLabelViewState extends State<ImageLabelView> {
   Future<void> fromStorage() async {
     final pickedFile =
         await ImagePicker().getImage(source: ImageSource.gallery);
+
     final inputImage = InputImage.fromFilePath(pickedFile.path);
     imageLabeler = GoogleMlKit.instance.imageLabeler();
     final labels = await imageLabeler.processImage(inputImage);

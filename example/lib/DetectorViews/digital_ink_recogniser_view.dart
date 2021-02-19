@@ -37,11 +37,16 @@ class _DigitalInkViewState extends State<DigitalInkView> {
               title: Text('Recognising'),
             ),
         barrierDismissible: true);
-    final text = await _digitalInkRecogniser.readText(_points, 'en-US');
-    Navigator.pop(context);
-    setState(() {
-      _recognisedText = text;
-    });
+    try{
+      final text = await _digitalInkRecogniser.readText(_points, 'en-US');
+      Navigator.pop(context);
+      setState(() {
+        _recognisedText = text;
+      });
+    }catch(e){
+      Navigator.pop(context);
+      print("Error while reading \n${e.toString()}");
+    }
   }
 
   @override
