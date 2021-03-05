@@ -65,6 +65,7 @@ class PoseDetector {
       'rotation' : 0,
       'height' : height,
       'width' : width,
+       'selections' : 'all'
     });
 
     List<PoseLandmark> poseLandmarks = <PoseLandmark>[];

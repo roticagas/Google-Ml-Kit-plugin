@@ -71,6 +71,8 @@ public class MlPoseDetector implements ApiDetectorInterface {
                                         public void onSuccess(Pose pose) {
                                             List<Map<String, Object>> pointsList = new ArrayList<>();
                                             if (selectionType.equals("all")) {
+                                                Log.e("Selection Type","All");
+                                                Log.e("Poses detected",pose.getAllPoseLandmarks().toString());
                                                 for (PoseLandmark poseLandmark : pose.getAllPoseLandmarks()) {
                                                     Map<String, Object> poseLandmarkMap = new HashMap<>();
                                                     poseLandmarkMap.put("position", poseLandmark.getLandmarkType());
@@ -110,10 +112,11 @@ public class MlPoseDetector implements ApiDetectorInterface {
 //        BitmapFactory.Options options = new BitmapFactory.Options();
 //        options.inMutable = true;
 //        Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
+        int rotationCompensation = ((int) imageData.get("rotation")) % 360;
         InputImage inputImage = InputImage.fromByteArray(bytes,
                 (int) imageData.get("width"),
-                (int) imageData.get("height"),
-                (int) imageData.get("rotation"),InputImage.IMAGE_FORMAT_NV21);
+                (int) imageData.get("height"),rotationCompensation
+                ,InputImage.IMAGE_FORMAT_NV21);
         if (inputImage != null) {
             Task<Pose> poseTask =
                     poseDetector.process(inputImage)

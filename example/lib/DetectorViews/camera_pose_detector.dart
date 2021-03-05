@@ -27,10 +27,16 @@ class _CameraScreenState extends State<CameraScreen> {
   ui.Image image;
 
   @override
+  void dispose(){
+    super.dispose();
+    controller.dispose();
+  }
+
+  @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    _poseDetector = GoogleMlKit.instance.poseDetector();
+    _poseDetector = GoogleMlKit.instance.poseDetector(poseDetectorOptions: PoseDetectorOptions(poseDetectionModel: PoseDetectionModel.AccuratePoseDetector));
     availableCameras().then((avlCameras) {
       cameras = avlCameras;
       if (cameras.length > 0) {
@@ -43,6 +49,20 @@ class _CameraScreenState extends State<CameraScreen> {
     }).catchError((e) {
       print(e.toString());
     });
+  }
+
+  Future<void> getPoseLandMarks(CameraImage image) async{
+    var poses = await _poseDetector
+        .fromByteBuffer(
+        bytes: await compute(_concatenatePlanes,image.planes),
+    rotation : 90,
+    height: image.height,
+    width: image.width);
+
+    setState(() {
+    poseLandMarks = poses;
+    });
+
   }
 
   @override
@@ -92,14 +112,14 @@ class _CameraScreenState extends State<CameraScreen> {
       child: Stack(
         children: [
           CameraPreview(controller),
-          image == null
-              ? Container()
-              : CustomPaint(
-                  painter: PosePainter(image, _poseLandmarks),
-                ),
-          // CustomPaint(
-          //   painter: LivePosePainter(poseLandMarks),
-          // ),
+          // image == null
+          //     ? Container()
+          //     : CustomPaint(
+          //         painter: PosePainter(image, _poseLandmarks),
+          //       ),
+          CustomPaint(
+            painter: LivePosePainter(poseLandMarks),
+          ),
           Positioned(
               bottom: 20,
               child:
@@ -109,40 +129,14 @@ class _CameraScreenState extends State<CameraScreen> {
                         RaisedButton(
                           child: const Text('Start streaming'),
                           onPressed: () async {
-                            if (controller != null) {
-                              final img = await controller.takePicture();
-                              final inputImage = InputImage.fromFilePath(img.path);
-                              final list = await _poseDetector.processImage(inputImage);
-                              final imgData = await img.readAsBytes();
-                              final temp = await decodeImageFromList(imgData);
-                              setState(() {
-                                _poseLandmarks = list;
-                                image = temp;
-                              });
-                              // if (!controller.value.isStreamingImages)
-                              //   controller.startImageStream((CameraImage image) {
-                              //     if(z>0){
-                              //       _poseDetector
-                              //           .fromByteBuffer(
-                              //           bytes: _concatenatePlanes(image.planes),
-                              //           rotation:
-                              //           controller.description.sensorOrientation,
-                              //           height: image.height,
-                              //           width: image.width)
-                              //           .then((poses) {
-                              //         setState(() {
-                              //           poseLandMarks = poses;
-                              //         });
-                              //       });
-                              //       print("\n\n");
-                              //       print("${image.format}  ${controller.}");
-                              //       print(_concatenatePlanes(image.planes));
-                              //       z=z-1;
-                              //     }
-                              //   });
-                              // setState(() => streaming != streaming);
+                              if (!controller.value.isStreamingImages)
+                                controller.startImageStream((CameraImage image) {
+                                    getPoseLandMarks(image);
+                                    print("\n\n ${image.format} ");
+                                    print("\nCamera rotation ${controller.description.sensorOrientation}");
+                                });
+                              setState(() => streaming != streaming);
                             }
-                          },
                         ),
                         SizedBox(width: 40,),
                         RaisedButton(
